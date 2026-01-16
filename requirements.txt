@@ -1,0 +1,21 @@
+﻿# Testing
+pytest==8.0.0
+pytest-cov==4.1.0
+
+# Code quality
+black==24.1.1
+flake8==7.0.0
+
+# Jupyter
+jupyter==1.0.0
+notebook==7.0.7
+
+# Data processing (instalaremos más adelante según necesidad)
+pandas==2.2.0
+numpy==1.26.3
+
+# Kafka (placeholder - instalaremos versión específica más adelante)
+# kafka-python==2.0.2
+
+# Spark (placeholder - lo usaremos via Docker)
+# pyspark==3.5.0
