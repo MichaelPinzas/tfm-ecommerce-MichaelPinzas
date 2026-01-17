@@ -45,7 +45,7 @@ def download_ecommerce_dataset():
 
         # Listar archivos descargados
         files = list(download_path.glob("*.csv"))
-        print(f"\n📄 Archivos CSV encontrados: {len(files)}")
+        print(f"\n Archivos CSV encontrados: {len(files)}")
         for file in files:
             size_mb = file.stat().st_size / (1024 * 1024)
             print(f"   - {file.name} ({size_mb:.2f} MB)")
