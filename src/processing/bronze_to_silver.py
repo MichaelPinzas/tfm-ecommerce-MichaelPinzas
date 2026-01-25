@@ -99,7 +99,29 @@ def enrich_temporal(df):
     """
     logger.info("Enriqueciendo con columnas temporales...")
 
-    # TODO: Implementar enriquecimiento temporal
+    # Extraer hora del día
+    df = df.withColumn("hour", hour(col("event_time")))
+
+    # Extraer día de la semana (1=Monday, 7=Sunday)
+    df = df.withColumn("day_of_week", dayofweek(col("event_time")))
+
+    # Identificar si es fin de semana (Saturday=7, Sunday=1)
+    df = df.withColumn(
+        "is_weekend",
+        when((col("day_of_week") == 1) | (col("day_of_week") == 7), True)
+        .otherwise(False)
+    )
+
+    # Clasificar por momento del día
+    df = df.withColumn(
+        "time_of_day",
+        when((col("hour") >= 6) & (col("hour") < 12), "morning")
+        .when((col("hour") >= 12) & (col("hour") < 18), "afternoon")
+        .when((col("hour") >= 18) & (col("hour") < 22), "evening")
+        .otherwise("night")
+    )
+
+    logger.info("✅ Columnas temporales agregadas: hour, day_of_week, is_weekend, time_of_day")
 
     return df
 
@@ -115,7 +137,34 @@ def parse_categories(df):
     """
     logger.info("Parseando categorías jerárquicas...")
 
-    # TODO: Implementar parsing de categorías
+    # Dividir category_code por "."
+    # split() devuelve un array: ["electronics", "smartphone", "apple"]
+    df = df.withColumn("category_split", split(col("category_code"), "\\."))
+
+    # Extraer nivel 1 (siempre existe, al menos "Unknown")
+    df = df.withColumn(
+        "category_l1",
+        col("category_split").getItem(0)
+    )
+
+    # Extraer nivel 2 (puede ser null si solo hay 1 nivel)
+    df = df.withColumn(
+        "category_l2",
+        when(size(col("category_split")) > 1, col("category_split").getItem(1))
+        .otherwise(lit(None))
+    )
+
+    # Extraer nivel 3 (puede ser null si solo hay 1-2 niveles)
+    df = df.withColumn(
+        "category_l3",
+        when(size(col("category_split")) > 2, col("category_split").getItem(2))
+        .otherwise(lit(None))
+    )
+
+    # Eliminar columna temporal
+    df = df.drop("category_split")
+
+    logger.info("✅ Categorías parseadas: category_l1, category_l2, category_l3")
 
     return df
 
@@ -131,7 +180,39 @@ def calculate_conversion_stage(df):
     """
     logger.info("Calculando conversion_stage...")
 
-    # TODO: Implementar lógica de funnel
+    # Importar funciones necesarias
+    from pyspark.sql.functions import collect_set, array_contains
+
+    # Crear ventana por user_id + product_id para ver todos los eventos
+    window_spec = Window.partitionBy("user_id", "product_id")
+
+    # Recolectar todos los event_types para cada combinación user+product
+    df = df.withColumn(
+        "user_product_events",
+        collect_set(col("event_type")).over(window_spec)
+    )
+
+    # Lógica de clasificación del funnel:
+    # 1. Si tiene 'purchase' en sus eventos → purchased
+    # 2. Si tiene 'cart' pero NO 'purchase' → added_to_cart
+    # 3. Si solo tiene 'view' → viewed_only
+    df = df.withColumn(
+        "conversion_stage",
+        when(
+            array_contains(col("user_product_events"), "purchase"),
+            lit("purchased")
+        )
+        .when(
+            array_contains(col("user_product_events"), "cart"),
+            lit("added_to_cart")
+        )
+        .otherwise(lit("viewed_only"))
+    )
+
+    # Eliminar columna temporal
+    df = df.drop("user_product_events")
+
+    logger.info("✅ Conversion stage calculado: viewed_only, added_to_cart, purchased")
 
     return df
 
