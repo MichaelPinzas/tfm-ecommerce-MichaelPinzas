@@ -24,12 +24,20 @@ dist/
 *~
 
 # Data files (no subir datos grandes)
-data/raw/*.csv
-data/raw/*.parquet
-data/raw/*.json
-data/bronze/*.parquet
-data/silver/*.parquet
-data/gold/*.parquet
+# Ignorar TODA la carpeta data/ y sus subdirectorios
+data/**/*.csv
+data/**/*.parquet
+data/**/*.json
+data/**/*.snappy.parquet
+data/**/*.crc
+data/**/_SUCCESS
+
+# Pero mantener la estructura de carpetas (con .gitkeep)
+!data/.gitkeep
+!data/raw/.gitkeep
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
 
 # Docker
 docker-compose.override.yml

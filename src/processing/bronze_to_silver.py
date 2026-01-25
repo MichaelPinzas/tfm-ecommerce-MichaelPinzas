@@ -236,22 +236,38 @@ def main(bronze_path, silver_path, process_date=None):
     # Crear sesión Spark
     spark = get_spark_session()
 
-    # Leer con PyArrow primero (evita el error de nanosegundos)
-    logger.info(f"Leyendo datos desde: {bronze_path}")
-
-    # Leer todo el dataset Bronze con PyArrow
-    table = pq.read_table(str(bronze_path))
-
-    # Convertir timestamp de nanosegundos a microsegundos
-    # (compatible con Spark)
-    table = table.cast(table.schema.set(
-        table.schema.get_field_index('event_time'),
-        pa.field('event_time', pa.timestamp('us', tz='UTC'))
-    ))
-
-    # Convertir a pandas DataFrame
-    pdf = table.to_pandas()
-
+    # MODIFICACIÓN: Procesar solo PRIMEROS 7 DÍAS de OCTUBRE
+    # Esto procesa ~3-4M registros (manejable en memoria)
+    logger.info("⚠️  PROCESANDO SOLO PRIMEROS 7 DÍAS DE OCTUBRE 2019")
+    logger.info("   (days 01-07, ~3-4M registros)")
+    
+    # Leer solo los primeros 7 días de octubre
+    days_to_process = [f"day={i}" for i in range(1, 8)]  # day=1 hasta day=7
+    bronze_week_paths = [
+        bronze_path / "year=2019" / "month=10" / day 
+        for day in days_to_process
+    ]
+    
+    all_data = []
+    for day_path in bronze_week_paths:
+        if day_path.exists():
+            logger.info(f"Leyendo: {day_path.name}")
+            table = pq.read_table(str(day_path))
+            
+            # Convertir timestamp de nanosegundos a microsegundos
+            table = table.cast(table.schema.set(
+                table.schema.get_field_index('event_time'),
+                pa.field('event_time', pa.timestamp('us', tz='UTC'))
+            ))
+            
+            all_data.append(table)
+    
+    # Concatenar todas las tablas
+    logger.info("Concatenando datos de los 7 días...")
+    combined_table = pa.concat_tables(all_data)
+    
+    # Convertir a pandas
+    pdf = combined_table.to_pandas()
     logger.info(f"Registros leídos: {len(pdf):,}")
 
     # Convertir pandas a Spark DataFrame
@@ -263,6 +279,14 @@ def main(bronze_path, silver_path, process_date=None):
     df = parse_categories(df)
     df = calculate_conversion_stage(df)
 
+    # Agregar columnas de particionamiento (year, month, day)
+    # Las extraemos de event_time para poder particionar
+    from pyspark.sql.functions import year, month, dayofmonth
+    logger.info("Agregando columnas de particionamiento (year, month, day)...")
+    df = df.withColumn("year", year(col("event_time"))) \
+           .withColumn("month", month(col("event_time"))) \
+           .withColumn("day", dayofmonth(col("event_time")))
+
     # Escribir a Silver manteniendo particionamiento
     logger.info(f"Escribiendo datos a: {silver_path}")
     df.write \
@@ -273,6 +297,7 @@ def main(bronze_path, silver_path, process_date=None):
     final_count = df.count()
     logger.info(f"Registros finales en Silver: {final_count:,}")
     logger.info("✅ Transformación completada exitosamente")
+    logger.info("ℹ️  Procesados primeros 7 días de Octubre 2019")
 
     spark.stop()
 
