@@ -1,4 +1,4 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.class
@@ -53,3 +53,25 @@ Thumbs.db
 # Config sensible
 config/*.env
 config/secrets.yaml
+
+# ========================================
+# ARCHIVOS PRIVADOS - NO SUBIR A GITHUB
+# ========================================
+
+# Documentación interna del TFM (privada)
+docs/RESPUESTAS_5_PREGUNTAS_NEGOCIO.md
+docs/PROJECT_STATUS.md
+PROGRESS.md
+
+# Memoria TFM y archivos Word
+*.docx
+*.pdf
+~$*.docx
+PlantillaMichaelPinzas*
+
+# Scripts internos
+generate_git_context.ps1
+
+# Capturas/diagramas si son sensibles
+docs/capturas/
+docs/diagramas/
