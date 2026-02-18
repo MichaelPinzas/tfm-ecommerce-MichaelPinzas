@@ -129,8 +129,8 @@ Git 2.x
 
 ```bash
 # 1. Clone repository
-git clone https://github.com/MichaelPinzas/tfm-ecommerce-analytics.git
-cd tfm-ecommerce-analytics
+git clone https://github.com/MichaelPinzas/tfm-ecommerce-MichaelPinzas.git
+cd tfm-ecommerce-MichaelPinzas
 
 # 2. Create virtual environment
 python -m venv venv
@@ -182,7 +182,7 @@ python src/validation/validate_gold_category.py
 ## Project Structure
 
 ```
-tfm-ecommerce-analytics/
+tfm-ecommerce-MichaelPinzas/
 ├── src/                           # Source code
 │   ├── ingestion/                 # Ingestion scripts
 │   │   └── csv_to_bronze.py       # CSV → Bronze Layer
